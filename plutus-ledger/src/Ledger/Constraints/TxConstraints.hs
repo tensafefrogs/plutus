@@ -212,22 +212,15 @@ mustForgeValue = foldMap valueConstraint . (AssocMap.toList . Value.getValue) wh
 mustForgeCurrency :: forall i o. MonetaryPolicyHash -> TokenName -> Integer -> TxConstraints i o
 mustForgeCurrency mps tn = singleton . MustForgeValue mps tn
 
-<<<<<<< HEAD
-{-# INLINABLE mustSpendAtLeast #-}
+{-# NOINLINE mustSpendAtLeast #-}
 -- | Requirement to spend inputs with at least the given value
 mustSpendAtLeast :: forall i o. Value -> TxConstraints i o
 mustSpendAtLeast = singleton . MustSpendAtLeast
 
-{-# INLINABLE mustProduceAtLeast #-}
+{-# NOINLINE mustProduceAtLeast #-}
 -- | Requirement to produce outputs with at least the given value
 mustProduceAtLeast :: forall i o. Value -> TxConstraints i o
 mustProduceAtLeast = singleton . MustProduceAtLeast
-=======
-{-# NOINLINE mustSpendValue #-}
--- | Requirement to spend the given value
-mustSpendValue :: forall i o. Value -> TxConstraints i o
-mustSpendValue = singleton . MustSpendValue
->>>>>>> e54437d35 (Changed INLINABLE/INLINEABLE plutustx code to NOINLINE)
 
 {-# NOINLINE mustSpendPubKeyOutput #-}
 mustSpendPubKeyOutput :: forall i o. TxOutRef -> TxConstraints i o
