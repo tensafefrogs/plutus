@@ -17,8 +17,7 @@ import Halogen.HTML.Properties (class_, classes)
 import Icons (Icon(..), icon)
 import NavTabs (mainTabBar, viewContainer)
 import Network.StreamData as Stream
-import Plutus.PAB.Events (ChainEvent)
-import Plutus.PAB.Types (ContractExe)
+import Plutus.PAB.Effects.Contract.ContractExe (ContractExe)
 import Plutus.PAB.Webserver.Types (ChainReport)
 import Prelude (bind, ($), (<$>), (<<<), (<>))
 import Types (ContractSignatures, ContractStates, HAction(..), State(..), View(..), WebSocketStatus(..), WebStreamData, _csrDefinition, _utxoIndex)
@@ -116,13 +115,12 @@ mainPane ::
   Chain.State ->
   WebStreamData ContractSignatures ->
   ChainReport ->
-  Array (ChainEvent ContractExe) ->
   HTML p HAction
-mainPane currentView contractStates chainState contractSignatures chainReport events =
+mainPane currentView contractStates chainState contractSignatures chainReport =
   row_
     [ activeContractPane currentView contractSignatures contractStates
     , blockchainPane currentView chainState chainReport
-    , eventLogPane currentView events chainReport
+    , eventLogPane currentView chainReport
     ]
 
 activeContractPane ::
@@ -164,11 +162,10 @@ blockchainPane currentView chainState chainReport =
         ]
     ]
 
-eventLogPane :: forall p. View -> Array (ChainEvent ContractExe) -> ChainReport -> HTML p HAction
-eventLogPane currentView events chainReport =
+eventLogPane :: forall p. View -> ChainReport -> HTML p HAction
+eventLogPane currentView chainReport =
   viewContainer currentView EventLog
     [ row_
-        [ col7_ [ eventsPane events ]
-        , col5_ [ utxoIndexPane (view _utxoIndex chainReport) ]
+        [ col5_ [ utxoIndexPane (view _utxoIndex chainReport) ]
         ]
     ]
