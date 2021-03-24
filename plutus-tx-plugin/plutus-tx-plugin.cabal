@@ -70,45 +70,45 @@ library
         transformers -any,
         plutus-tx -any
 
-test-suite plutus-tx-tests
-    type: exitcode-stdio-1.0
-    hs-source-dirs: test
-    main-is: Spec.hs
-    other-modules:
-        Lift.Spec
-        Plugin.Spec
-        Plugin.Basic.Spec
-        Plugin.Data.Spec
-        Plugin.Errors.Spec
-        Plugin.Functions.Spec
-        Plugin.Laziness.Spec
-        Plugin.Primitives.Spec
-        Plugin.Typeclasses.Spec
-        Plugin.Typeclasses.Lib
-        Plugin.Lib
-        StdLib.Spec
-        TH.Spec
-        TH.TestTH
-        Lib
-    default-language: Haskell2010
-    build-depends:
-        base >=4.9 && <5,
-        flat -any,
-        deepseq -any,
-        integer-gmp -any,
-        plutus-core -any,
-        plutus-tx -any,
-        plutus-tx-plugin -any,
-        prettyprinter -any,
-        mtl -any,
-        bytestring -any,
-        serialise -any,
-        template-haskell -any,
-        tasty -any,
-        tasty-hunit -any,
-        tasty-hedgehog -any,
-        hedgehog -any,
-        lens -any,
-        ghc-prim -any,
-    -- this makes the plugin give better errors
-    ghc-options: -g
+-- test-suite plutus-tx-tests
+--     type: exitcode-stdio-1.0
+--     hs-source-dirs: test
+--     main-is: Spec.hs
+--     other-modules:
+--         Lift.Spec
+--         Plugin.Spec
+--         Plugin.Basic.Spec
+--         Plugin.Data.Spec
+--         Plugin.Errors.Spec
+--         Plugin.Functions.Spec
+--         Plugin.Laziness.Spec
+--         Plugin.Primitives.Spec
+--         Plugin.Typeclasses.Spec
+--         Plugin.Typeclasses.Lib
+--         Plugin.Lib
+--         StdLib.Spec
+--         TH.Spec
+--         TH.TestTH
+--         Lib
+--     default-language: Haskell2010
+--     build-depends:
+--         base >=4.9 && <5,
+--         flat -any,
+--         deepseq -any,
+--         integer-gmp -any,
+--         plutus-core -any,
+--         plutus-tx -any,
+--         plutus-tx-plugin -any,
+--         prettyprinter -any,
+--         mtl -any,
+--         bytestring -any,
+--         serialise -any,
+--         template-haskell -any,
+--         tasty -any,
+--         tasty-hunit -any,
+--         tasty-hedgehog -any,
+--         hedgehog -any,
+--         lens -any,
+--         ghc-prim -any,
+--     -- this makes the plugin give better errors
+--     ghc-options: -g
