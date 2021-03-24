@@ -25,7 +25,7 @@ import qualified Language.PlutusTx.Builtins             as Builtins
 -- I feel like we shouldn't need this, we only need it to spot the special String type, which is annoying
 import qualified Language.PlutusTx.String               as String
 
-import qualified Class                                  as GHC
+--import qualified Class                                  as GHC
 import qualified FV                                     as GHC
 import qualified GhcPlugins                             as GHC
 import qualified MkId                                   as GHC
@@ -469,9 +469,9 @@ compileExpr e = withContextM 2 (sdToTxt $ "Compiling expr:" GHC.<+> GHC.ppr e) $
                     case mbind of
                         Just b ->
                             case lookup n $ bindAssocs b of
-                                Nothing   -> oldApproach n
+                                Nothing   -> error ("interface file is missing entry for name:" ++ GHC.showSDocUnsafe (GHC.ppr n))
                                 Just expr -> hoistExpr n expr
-                        Nothing -> oldApproach n
+                        Nothing -> error ("interface file is missing entry for name:" ++ GHC.showSDocUnsafe (GHC.ppr n))
 
         -- arg can be a type here, in which case it's a type instantiation
         l `GHC.App` GHC.Type t -> PIR.TyInst () <$> compileExpr l <*> compileTypeNorm t
@@ -580,31 +580,3 @@ compileExprWithDefs e = do
     defineBuiltinTypes
     defineBuiltinTerms
     compileExpr e
-
-oldApproach :: CompilingDefault uni fun m
-            => GHC.Var -> m (PIRTerm uni fun)
-oldApproach = \case
-    -- See Note [Unfoldings]
-    -- The "unfolding template" includes things with normal unfoldings and also dictionary functions
-    n@(GHC.maybeUnfoldingTemplate . GHC.realIdUnfolding -> Just unfolding) -> hoistExpr n unfolding
-    -- Class ops don't have unfoldings in general (although they do if they're for one-method classes, so we
-    -- want to check the unfoldings case first), see the GHC Note [ClassOp/DFun selection] for why. That
-    -- means we have to reconstruct the RHS ourselves, though, which is a pain.
-    n@(GHC.idDetails -> GHC.ClassOpId cls) -> do
-        -- This code (mostly) lifted from MkId.mkDictSelId, which makes unfoldings for those dictionary
-        -- selectors that do have them
-        let sel_names = fmap GHC.getName (GHC.classAllSelIds cls)
-        val_index <- case elemIndex (GHC.getName n) sel_names of
-            Just i  -> pure i
-            Nothing -> throwSd CompilationError $ "Id not in class method list:" GHC.<+> GHC.ppr n
-        let rhs = GHC.mkDictSelRhs cls val_index
-        hoistExpr n rhs
-    n -> do
-        -- Defined names, including builtin names
-        maybeDef <- PIR.lookupTerm () (LexName $ GHC.getName n)
-        case maybeDef of
-            Just term -> pure term
-            Nothing -> throwSd FreeVariableError $
-                      "Variable" GHC.<+> GHC.ppr n
-                      GHC.$+$ (GHC.ppr $ GHC.idDetails n)
-                      GHC.$+$ (GHC.ppr $ GHC.realIdUnfolding n)

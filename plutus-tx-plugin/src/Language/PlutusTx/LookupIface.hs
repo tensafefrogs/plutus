@@ -4,22 +4,17 @@ module Language.PlutusTx.LookupIface
     ( mkLookupIf
     ) where
 
-import           BinIface
 import           CoreSyn
 import           Data.Bifunctor
 import           Data.IORef
-import           Data.Maybe
 import           HscTypes
 import           Id
-import           IfaceEnv
-import           IfaceSyn
-import           Maybes
 import           Module
 import           Name
 import           NameEnv
 import           Outputable
-import           TcIface
 import           TcRnMonad
+import LoadIface
 
 {- |
 Initialise a stateful `IO` function for loading core bindings by loading the
@@ -98,47 +93,3 @@ bindsToNameEnv = mkNameEnv . concatMap bindToNameEntry
     bindToNameEntry b = case b of
         NonRec n _ -> [(idName n,b)]
         Rec assocs -> bimap idName (const b) <$> assocs
-
-{-
-Perform interface `typecheck` loading from this binding's extensible interface
-field within the deserialised `ModIface` to load the bindings that the field
-contains, if the field exists.
--}
-loadCoreBindings :: ModIface -> IfL (Maybe [CoreBind])
-loadCoreBindings iface = do
-  ncu <- mkNameCacheUpdater
-  mbinds <- liftIO $ readIfaceFieldWith "ghc/phase/core" (getWithUserData ncu) iface
-  case mbinds of
-    Just ibinds -> Just . catMaybes <$> traverse tcIfaceBinding ibinds
-    Nothing     -> pure Nothing
-
--------------------------------------------------------------------------------
--- Interface loading for top-level bindings
--------------------------------------------------------------------------------
-
-{-
-Certain RHSs fail to typecheck due to the error `Iface id out of scope: ...`.
-In particular, this workaround is used to exclude GHC's special type reflection
-bindings from causing problems in loading.
-
-In theory, we should be removing them during serialisation, but they are structured
-as real bindings, so we would have to do a fragile test on the `Name`.
--}
-tcIfaceBinding :: IfaceBinding -> IfL (Maybe CoreBind)
-tcIfaceBinding ibind =
-  rightToMaybe <$> tryAllM (tcIfaceBinding' ibind)
-  where
-    tcIfaceBinding' :: IfaceBinding -> IfL CoreBind
-    tcIfaceBinding' = \case
-        IfaceNonRec letbndr rhs -> uncurry NonRec <$> go letbndr rhs
-        IfaceRec    pairs       -> Rec <$> traverse (uncurry go) pairs
-    go :: IfaceLetBndr
-       -> IfaceExpr
-       -> IOEnv (Env IfGblEnv IfLclEnv) (Id, CoreExpr)
-    go (IfLetBndr fs ty _info ji) rhs = do
-        name <- lookupIfaceTop $ mkVarOccFS fs
-        ty'  <- tcIfaceType ty
-        rhs' <- tcIfaceExpr rhs
-        let ident = mkExportedVanillaId name ty' `asJoinId_maybe` tcJoinInfo ji
-        pure (ident, rhs')
-
