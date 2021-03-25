@@ -10,19 +10,16 @@ import Halogen.HTML (HTML, a, button, div, div_, footer, h1, header, hr, input, 
 import Halogen.HTML.Events.Extra (onClick_, onValueInput_)
 import Halogen.HTML.Properties (InputType(..), disabled, for, href, id_, list, placeholder, readOnly, type_, value)
 import MainFrame.Lenses (_card)
-import Marlowe.Semantics (PubKey)
 import Material.Icons (Icon(..), icon_)
-import Network.RemoteData (RemoteData)
 import Pickup.Types (Action(..), Card(..), State)
 import Prim.TypeError (class Warn, Text)
-import Servant.PureScript.Ajax (AjaxError)
-import WalletData.Lenses (_contractId, _nickname)
-import WalletData.Types (Nickname, WalletDetails, WalletLibrary)
-import WalletData.Validation (contractIdError, nicknameError)
+import WalletData.Lenses (_contractInstanceId, _contractInstanceIdString, _remoteDataWallet, _walletNickname, _walletNicknameString)
+import WalletData.Types (NewWalletDetails, WalletDetails, WalletLibrary)
+import WalletData.Validation (contractInstanceIdError, walletNicknameError)
 import WalletData.View (nicknamesDataList)
 
-renderPickupState :: forall p. WalletLibrary -> Nickname -> String -> RemoteData AjaxError PubKey -> State -> HTML p Action
-renderPickupState wallets newWalletNickname newWalletContractId remoteDataPubKey pickupState =
+renderPickupState :: forall p. WalletLibrary -> NewWalletDetails -> State -> HTML p Action
+renderPickupState wallets newWalletDetails pickupState =
   let
     card = view _card pickupState
   in
@@ -30,14 +27,14 @@ renderPickupState wallets newWalletNickname newWalletContractId remoteDataPubKey
       [ classNames [ "grid", "h-full" ] ]
       [ main
           [ classNames [ "relative" ] ]
-          [ renderPickupCard wallets newWalletNickname newWalletContractId remoteDataPubKey card
+          [ renderPickupCard wallets newWalletDetails card
           , renderPickupScreen wallets
           ]
       ]
 
 ------------------------------------------------------------
-renderPickupCard :: forall p. WalletLibrary -> Nickname -> String -> RemoteData AjaxError PubKey -> Maybe Card -> HTML p Action
-renderPickupCard wallets newWalletNickname newWalletContractId remoteDataPubKey card =
+renderPickupCard :: forall p. WalletLibrary -> NewWalletDetails -> Maybe Card -> HTML p Action
+renderPickupCard wallets newWalletDetails card =
   -- TODO: currently there is only one card rendered at any time, with different content
   -- depending on the card selected in the state; we should change it so that all the
   -- cards are rendered, with at most one visible at any time (likewise in Play.State).
@@ -54,17 +51,23 @@ renderPickupCard wallets newWalletNickname newWalletContractId remoteDataPubKey 
             [ icon_ Close ]
         , div_
             $ (flip foldMap card) \cardType -> case cardType of
-                PickupNewWalletCard -> [ pickupNewWalletCard wallets newWalletNickname newWalletContractId remoteDataPubKey ]
+                PickupNewWalletCard -> [ pickupNewWalletCard wallets newWalletDetails ]
                 PickupWalletCard walletDetails -> [ pickupWalletCard walletDetails ]
         ]
     ]
 
-pickupNewWalletCard :: forall p. WalletLibrary -> Nickname -> String -> RemoteData AjaxError PubKey -> HTML p Action
-pickupNewWalletCard wallets newWalletNickname newWalletContractId remoteDataPubKey =
+pickupNewWalletCard :: forall p. WalletLibrary -> NewWalletDetails -> HTML p Action
+pickupNewWalletCard wallets newWalletDetails =
   let
-    mNicknameError = nicknameError newWalletNickname wallets
+    walletNicknameString = view _walletNicknameString newWalletDetails
 
-    mContractIdError = contractIdError newWalletContractId remoteDataPubKey wallets
+    contractInstanceIdString = view _contractInstanceIdString newWalletDetails
+
+    remoteDataWallet = view _remoteDataWallet newWalletDetails
+
+    mWalletNicknameError = walletNicknameError walletNicknameString wallets
+
+    mContractInstanceIdError = contractInstanceIdError contractInstanceIdString remoteDataWallet wallets
   in
     div_
       [ p
@@ -79,15 +82,15 @@ pickupNewWalletCard wallets newWalletNickname newWalletContractId remoteDataPubK
                 [ text "Nickname" ]
             , input
                 $ [ type_ InputText
-                  , classNames $ (Css.input $ isJust mNicknameError) <> [ "text-lg" ]
+                  , classNames $ (Css.input $ isJust mWalletNicknameError) <> [ "text-lg" ]
                   , id_ "newWalletNickname"
                   , placeholder "Nickname"
-                  , value newWalletNickname
+                  , value walletNicknameString
                   , onValueInput_ SetNewWalletNickname
                   ]
             , div
                 [ classNames Css.inputError ]
-                [ text $ foldMap show mNicknameError ]
+                [ text $ foldMap show mWalletNicknameError ]
             ]
       , div
           [ classNames $ Css.hasNestedLabel <> [ "mb-4" ] ]
@@ -100,7 +103,7 @@ pickupNewWalletCard wallets newWalletNickname newWalletContractId remoteDataPubK
               [ type_ InputText
               , classNames $ (Css.input false) <> [ "text-lg" ]
               , id_ "newWalletKey"
-              , value newWalletContractId
+              , value contractInstanceIdString
               , readOnly true
               ]
           ]
@@ -113,7 +116,7 @@ pickupNewWalletCard wallets newWalletNickname newWalletContractId remoteDataPubK
               [ text "Cancel" ]
           , button
               [ classNames $ Css.primaryButton <> [ "flex-1" ]
-              , disabled $ isJust mNicknameError || isJust mContractIdError
+              , disabled $ isJust mWalletNicknameError || isJust mContractInstanceIdError
               , onClick_ PickupNewWallet
               ]
               [ text "Pickup" ]
@@ -123,9 +126,9 @@ pickupNewWalletCard wallets newWalletNickname newWalletContractId remoteDataPubK
 pickupWalletCard :: forall p. WalletDetails -> HTML p Action
 pickupWalletCard walletDetails =
   let
-    nickname = view _nickname walletDetails
+    nickname = view _walletNickname walletDetails
 
-    contractId = view _contractId walletDetails
+    contractId = view _contractInstanceId walletDetails
   in
     div_
       [ p
@@ -157,7 +160,7 @@ pickupWalletCard walletDetails =
               [ type_ InputText
               , classNames $ Css.input false
               , id_ "walletId"
-              , value $ view _contractId walletDetails
+              , value "" -- TODO convert $ view _contractInstanceId walletDetails to string
               , readOnly true
               ]
           ]

@@ -13,7 +13,7 @@ import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Minutes)
 import Marlowe.Semantics (Slot)
 import Template.Types (Action, State) as Template
-import WalletData.Types (Nickname, WalletDetails)
+import WalletData.Types (WalletDetails, WalletNickname)
 
 type State
   = { walletDetails :: WalletDetails
@@ -45,7 +45,7 @@ derive instance eqCard :: Eq Card
 
 data Action
   = PutdownWallet
-  | SetNewWalletNickname Nickname
+  | SetNewWalletNickname WalletNickname
   | SetNewWalletContractId String
   | AddNewWallet (Maybe String)
   | ToggleMenu
